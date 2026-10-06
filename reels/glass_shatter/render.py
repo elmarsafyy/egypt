@@ -507,9 +507,7 @@ def post(img, t, frame_rng):
                                       borderMode=cv2.BORDER_REFLECT)
     img = out * VIGNETTE
     img += frame_rng.normal(0, 0.018, (H // 2, W // 2, 1)).astype(np.float32).repeat(2, 0).repeat(2, 1)
-    fade_in = smooth(t / 0.06) * 0.85 + 0.15
-    fade_out = 1 - smooth((t - 3.75) / 0.25)
-    img *= fade_in * fade_out
+    img *= 1 - smooth((t - 3.75) / 0.25)
     return (np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)
 
 
