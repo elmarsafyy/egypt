@@ -173,6 +173,15 @@ def main():
     text(img, (1297, 490), "وفيها 10 أسئلة", 40, navy)
     text(img, (1305, 302), "4", 58, white, (5, 80, 45), 2)
 
+    # per-section seconds on the stopwatches: 5, 5, 10, 7
+    for cx in (545, 1309):
+        face = (251, 250, 243)
+        m = Image.new("L", img.size, 0)
+        ImageDraw.Draw(m).ellipse((cx - 35, 573, cx + 35, 629), fill=255)
+        img.paste(Image.new("RGB", img.size, face), (0, 0), m.filter(ImageFilter.GaussianBlur(2)))
+    text(img, (545, 603), "5", 70, (27, 45, 110))
+    text(img, (1309, 603), "7", 70, (27, 45, 110))
+
     img.save(os.path.join(HERE, "images", "02.jpg"), quality=95)
 
 
