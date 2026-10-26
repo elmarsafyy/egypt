@@ -22,7 +22,7 @@ TIMER_SECONDS = 5
 # (image, voice start, voice end, is_question) — seconds into audio/voice.wav
 SLIDES = [
     ("01.jpg", 0.00, 28.75, False),    # افتتاح
-    ("02.jpg", 29.84, 68.12, False),   # نظام المسابقة
+    ("02.jpg", None, None, False),     # نظام المسابقة — see RULES_SPLICE
     ("03.jpg", 68.77, 74.71, False),   # الفريقان
     ("04.jpg", 75.88, 78.72, False),   # الفقرة الأولى
     ("05.jpg", 79.51, 93.05, True),
@@ -36,6 +36,21 @@ SLIDES = [
     ("13.jpg", 231.08, 247.90, True),
     ("14.jpg", 253.05, 268.24, True),
 ]
+# The recorded rules narration follows the old section order, so the new
+# order is stitched from words in the recording; (start, end, pause after).
+RULES_SPLICE = [
+    (29.72, 33.80, 0.45),  # مسابقة القرآن الكريم.. بين فريقينا.. نرتقي بالقرآن
+    (75.80, 78.85, 0.25),  # الفقرة الأولى: مفاهيم حول سورة هود
+    (37.25, 41.60, 0.45),  # وفيها عشرة أسئلة عن سورة هود، ولكل سؤال خمس ثوان
+    (42.45, 49.10, 0.45),  # الفقرة الثانية: التجويد، وفيها عشرة أسئلة في أحكام التجويد...
+    (49.92, 52.20, 0.0),   # الفقرة الثالثة: اختبر حفظك في
+    (38.88, 39.56, 0.25),  # سورة هود
+    (52.74, 56.60, 0.45),  # وفيها عشرة أسئلة، ولكل سؤال عشر ثوان
+    (57.30, 58.62, 0.15),  # الفقرة الرابعة
+    (51.10, 56.60, 0.45),  # اختبر حفظك في جزء النبأ، وفيها عشرة أسئلة، ولكل سؤال عشر ثوان
+    (66.80, 68.20, 0.0),   # بالتوفيق للفريقين
+]
+
 LEAD, PAD = 0.12, 0.15          # extra voice kept before/after each range
 PRE, POST = 0.5, 0.9            # silence before the voice / after a plain slide
 GAP_BEFORE_TIMER, AFTER_TIMER = 0.3, 1.2
@@ -52,6 +67,17 @@ def load_voice():
          "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"],
         check=True, capture_output=True).stdout
     return np.frombuffer(raw, dtype=np.float32)
+
+
+def splice(voice, pieces):
+    out = []
+    edge = int(0.012 * SR)
+    for s, e, pause in pieces:
+        p = voice[int(s * SR):int(e * SR)].copy()
+        p[:edge] *= np.linspace(0, 1, edge)
+        p[-edge:] *= np.linspace(1, 0, edge)
+        out += [p, np.zeros(int(pause * SR), np.float32)]
+    return np.concatenate(out)
 
 
 def env(n, attack, decay):
@@ -130,7 +156,10 @@ def main():
     tmp = tempfile.mkdtemp()
     parts = []
     for idx, (name, vs, ve, question) in enumerate(SLIDES):
-        clip = voice[int((vs - LEAD) * SR) if vs > LEAD else 0:int((ve + PAD) * SR)].copy()
+        if vs is None:
+            clip = splice(voice, RULES_SPLICE)
+        else:
+            clip = voice[int((vs - LEAD) * SR) if vs > LEAD else 0:int((ve + PAD) * SR)].copy()
         fade = int(0.04 * SR)
         clip[-fade:] *= np.linspace(1, 0, fade)
         pre = np.zeros(int(PRE * SR), np.float32)
